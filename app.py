@@ -92,7 +92,7 @@ def set_is_deleted(disruption, alert_entity, trip_update_entity=None):
 
 def init_trip_update_entity(feed_message, disruption):
     trip_update_entity = feed_message.entity.add()
-    trip_update_entity.id = "trip_update_entity:" + disruption.attrib['id']
+    trip_update_entity.id = "trip_update:" + disruption.attrib['id']
     trip_update_entity.trip_update.trip.schedule_relationship = trip_update_entity.trip_update.trip.CANCELED
     return trip_update_entity
 
