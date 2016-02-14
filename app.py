@@ -86,9 +86,9 @@ def set_active_period_to_alert_entity(disruption, alert_entity):
 
 def set_is_deleted(disruption, alert_entity, trip_update_entity=None):
     v = disruption.find('VALIDITY')
-    alert_entity.is_deleted = (v.attrib['status'] == 0)
+    alert_entity.is_deleted = (v.attrib['status'] == "0")
     if trip_update_entity is not None:
-        trip_update_entity.is_deleted = (v.attrib['status'] == 0)
+        trip_update_entity.is_deleted = (v.attrib['status'] == "0")
 
 def init_trip_update_entity(feed_message, disruption):
     trip_update_entity = feed_message.entity.add()
