@@ -40,7 +40,7 @@ def populate_feed_message(disruptions, msg):
     msg.header.timestamp = int(timegm(
         iso8601.parse_date(disruptions.attrib['time']).utctimetuple()))
     for disruption in list(disruptions):
-        if (disruption.tag == 'DISRUPTION'):
+        if (disruption.tag == 'DISRUPTION' and disruption.find('VALIDITY').attrib['status'] != '0'):
             alert_entity = init_alert_entity(msg, disruption)
             if alert_entity.alert.effect == 1:
                 trip_update_entity = init_trip_update_entity(msg, disruption)
@@ -59,7 +59,6 @@ def populate_feed_message(disruptions, msg):
                 if 'deptime' in line.attrib and line.attrib['deptime']:
                     set_start_time_to_informed_and_trip_update_entities(iso8601.parse_date(line.attrib['deptime']), inf, trip_update_entity)
 
-            set_is_deleted(disruption, alert_entity, trip_update_entity)
             set_active_period_to_alert_entity(disruption, alert_entity)
             set_description_to_alert_entity(disruption, alert_entity)
 
@@ -83,12 +82,6 @@ def set_active_period_to_alert_entity(disruption, alert_entity):
     vper = alert_entity.alert.active_period.add()
     vper.start = int(timegm(iso8601.parse_date(v.attrib['from']).utctimetuple()))
     vper.end = int(timegm(iso8601.parse_date(v.attrib['to']).utctimetuple()))
-
-def set_is_deleted(disruption, alert_entity, trip_update_entity=None):
-    v = disruption.find('VALIDITY')
-    alert_entity.is_deleted = (v.attrib['status'] == "0")
-    if trip_update_entity is not None:
-        trip_update_entity.is_deleted = (v.attrib['status'] == "0")
 
 def init_trip_update_entity(feed_message, disruption):
     trip_update_entity = feed_message.entity.add()
