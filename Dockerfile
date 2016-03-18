@@ -10,6 +10,7 @@ RUN mkdir -p ${WORK}
 ADD . ${WORK}
 RUN pip install -r requirements.txt
 
-EXPOSE 5000
+ENV PORT=8080
+EXPOSE 8080
 
 CMD export TZ="Europe/Helsinki" && python app.py
