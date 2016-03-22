@@ -72,9 +72,10 @@ def init_feed_message():
 def set_description_to_alert_entity(disruption, alert_entity):
     texts = list(disruption.find('INFO'))
     for t in texts:
-        if t.text and t.attrib['lang']:
+        lang = t.attrib['lang']
+        if t.text and lang:
             head = alert_entity.alert.description_text.translation.add()
-            head.language = t.attrib['lang']
+            head.language = lang if lang != "se" else "sv"
             head.text = t.text
 
 def set_active_period_to_alert_entity(disruption, alert_entity):
