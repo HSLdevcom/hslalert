@@ -2,6 +2,7 @@ FROM python:2
 MAINTAINER Reittiopas version: 0.1
 
 ENV WORK=/opt/hslalert
+ENV POIKKEUS_URL=http://www.poikkeusinfo.fi/xml/v3
 
 WORKDIR ${WORK}
 
