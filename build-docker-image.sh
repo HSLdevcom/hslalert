@@ -1,5 +1,6 @@
 #!/bin/bash
 ORG=hsldevcom
+DOCKER_IMAGE=hslalert
 
 # Set these environment variables
 #DOCKER_IMAGE=
