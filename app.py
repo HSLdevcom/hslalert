@@ -3,6 +3,8 @@ import time
 from urllib import urlopen
 from xml.etree.ElementTree import ElementTree
 from google.protobuf import text_format
+import threading
+from traceback import print_exc
 
 from flask import Flask
 from flask import request
@@ -11,30 +13,64 @@ from calendar import timegm
 
 import gtfs_realtime_pb2
 
-poikkeusURL = 'http://www.poikkeusinfo.fi/xml/v3'
+#poikkeusinfo url
+poikkeusURL = os.environ.get('POIKKEUS_URL', 'http://www.poikkeusinfo.fi/xml/v3')
 agency_id = 'HSL'
 
 tree = ElementTree()
 
+def init_feed_message():
+    msg = gtfs_realtime_pb2.FeedMessage()
+    msg.header.gtfs_realtime_version = "1.0"
+    msg.header.incrementality = msg.header.FULL_DATASET
+    return msg
+
+#cache for processed gtfsrt message
+cached_disruptions ={"msg": init_feed_message()}
+
 app = Flask(__name__)
+
+class Poll(object):
+    def __init__(self, interval, fn):
+        self.interval = interval
+        self.stopped = threading.Event()
+        self.fn = fn
+        thread = threading.Thread(target=self.run)
+        thread.daemon = True
+        thread.start()
+
+    def run(self):
+        while True:
+            try:
+                self.fn();
+            except:
+                print_exc()
+            self.stopped.wait(self.interval)
 
 
 @app.route('/')
 def index():
-    return get_disruptions()
+    return to_string(cached_disruptions["msg"])
 
-def get_disruptions():
-    """Get alerts from HSL XML interface and format them into GTFS-RT"""
-    tree.parse(urlopen(poikkeusURL))
-    msg = init_feed_message()
-    disruptions = tree.getroot()
-    if (disruptions is not None):
-        populate_feed_message(disruptions, msg)
-
+def to_string(msg):
     if 'debug' in request.args:
         return text_format.MessageToString(msg)
     else:
         return msg.SerializeToString()
+
+def update_disruptions():
+    """Get alerts from HSL XML interface and format them into GTFS-RT"""
+    print 'fetching data from', poikkeusURL
+    tree.parse(urlopen(poikkeusURL))
+    msg = init_feed_message()
+    disruptions = tree.getroot()
+    if (disruptions is not None):
+        print 'populating disruptions'
+        populate_feed_message(disruptions, msg)
+    else:
+        print 'no disruptions'
+
+    cached_disruptions["msg"] = msg
 
 def populate_feed_message(disruptions, msg):
     msg.header.timestamp = int(timegm(
@@ -61,13 +97,6 @@ def populate_feed_message(disruptions, msg):
 
             set_active_period_to_alert_entity(disruption, alert_entity)
             set_description_to_alert_entity(disruption, alert_entity)
-
-
-def init_feed_message():
-    msg = gtfs_realtime_pb2.FeedMessage()
-    msg.header.gtfs_realtime_version = "1.0"
-    msg.header.incrementality = msg.header.FULL_DATASET
-    return msg
 
 def set_description_to_alert_entity(disruption, alert_entity):
     texts = list(disruption.find('INFO'))
@@ -121,6 +150,7 @@ def set_id_and_direction(id, informed_entity, trip_update_entity=None, direction
         if trip_update_entity is not None:
             trip_update_entity.trip_update.trip.direction_id = direction
 
+ALERTS_poll = Poll(60, update_disruptions)
 
 def main(debug=False):
     port = int(os.environ.get('PORT', 5000))
